@@ -16,10 +16,21 @@ DROP TABLE IF EXISTS datasets;
 
 CREATE TABLE datasets (
     id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    description TEXT,
-    timestamp_field TEXT
+    name TEXT NOT NULL,
+    deleted_at TIMESTAMPTZ DEFAULT NULL,
+    deleted_by TEXT DEFAULT NULL
 );
+
+-- Unique constraint on name for ACTIVE datasets only
+-- (allows reuse after soft-deletion)
+CREATE UNIQUE INDEX idx_datasets_name_active
+    ON datasets (name)
+    WHERE deleted_at IS NULL;
+
+-- Index on deleted_at for efficient queries
+-- (find soft-deleted datasets, identify expired records)
+CREATE INDEX idx_datasets_deleted_at
+    ON datasets (deleted_at);
 
 -- ============================================================
 --  TIMESERIES_LONG TABLE
