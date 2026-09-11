@@ -12,15 +12,15 @@
  * It only manages dataset metadata (id, name, etc.).
  */
 
-const datasetRepository = require('../repositories/datasetRepository');
-const { importDataset, updateDataset } = require('./datasetImportService');
+const datasetRepository = require("../repositories/datasetRepository");
+const { importDataset, updateDataset } = require("./datasetImportService");
 
 class datasetService {
   /**
    * Returns all datasets.
    */
-  async getAllDatasets() {
-    return await datasetRepository.findAll();
+  async getAllDatasets(status = "active") {
+    return await datasetRepository.findAll(status);
   }
 
   /**
