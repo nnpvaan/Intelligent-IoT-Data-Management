@@ -720,3 +720,28 @@ The request uses the same timestamp, mapping, and row fields as `POST /api/datas
 | `/api/login` | Legacy username/password login | `POST /api/auth/login` | HttpOnly cookie, Remember Me, MFA, and tests pass. | BE / AFI-16 date to be confirmed |
 | `/api/refresh-token` | Legacy refresh token in JSON body | `POST /api/auth/refresh` | Rotating cookie works; FE sends credentials. | BE + FE / AFI-16 date to be confirmed |
 | `/api/logout` | Legacy refresh token in JSON body | `POST /api/auth/logout` | Idempotent cookie logout and two-tab test pass. | BE + FE / AFI-16 date to be confirmed |
+
+
+---
+
+## ISO 8601 UTC Timestamp Contract
+
+All time-series timestamps accepted during ingestion must use ISO 8601 format with either `Z` or an explicit timezone offset.
+
+Accepted examples:
+
+- `2026-09-10T10:30:00Z`
+- `2026-09-10T20:30:00+10:00`
+
+Rejected examples:
+
+- `2026-09-10T10:30:00`
+- `10 September 2026`
+- `invalid-timestamp`
+- Missing timestamp values
+
+Valid timestamps are normalised before repository insertion. Equivalent timestamps containing different timezone offsets are stored as the same UTC instant.
+
+Dataset series API responses return timestamps in ISO 8601 UTC format:
+
+`YYYY-MM-DDTHH:mm:ss.sssZ`

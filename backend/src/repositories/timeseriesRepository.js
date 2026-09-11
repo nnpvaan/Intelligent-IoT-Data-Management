@@ -13,6 +13,9 @@
 
 const pool = require('../db/pool');
 const TimeSeriesWide = require("../models/timeSeriesWide");
+const {
+  normaliseInputTimestamp
+} = require('../utils/timestampUtils');
 
 class TimeseriesRepository {
 
@@ -73,12 +76,14 @@ class TimeseriesRepository {
     const columns = ["dataset_id", "created_at", "entry_id", ...metricKeys];
     const placeholders = columns.map((_, i) => `$${i + 1}`).join(", ");
 
-    const values = [
-      datasetId,
-      createdAt,
-      entryId,
-      ...metricKeys.map(k => fields[k] ?? null)
-    ];
+    const normalisedCreatedAt = normaliseInputTimestamp(createdAt);
+
+const values = [
+  datasetId,
+  normalisedCreatedAt,
+  entryId,
+  ...metricKeys.map(k => fields[k] ?? null)
+];
 
     const query = `
       INSERT INTO timeseries (${columns.join(", ")})
