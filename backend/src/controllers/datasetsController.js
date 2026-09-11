@@ -89,10 +89,34 @@ const updateDataset = async (req, res) => {
     return datasetError(res, req, err);
   }
 };
+/**
+ * POST /api/datasets/:id/restore
+ * Restores a soft-deleted dataset within its recovery period.
+ */
+const restoreDataset = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    if (!/^\d+$/.test(id) || Number(id) < 1) {
+      return res.status(400).json({
+        error: 'Dataset ID must be a positive integer',
+      });
+    }
+
+    const dataset = await datasetService.restoreDataset(id, req.user);
+
+    return res.status(200).json({
+      data: dataset,
+      meta: { requestId: requestId(req) },
+    });
+  } catch (err) {
+    return datasetError(res, req, err);
+  }
+};
 module.exports = {
   getAllDatasets,
   getDatasetById,
   createDataset,
   updateDataset,
+  restoreDataset,
 };

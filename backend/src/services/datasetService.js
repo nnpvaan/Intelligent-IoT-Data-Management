@@ -51,6 +51,10 @@ class datasetService {
   async updateDataset(id, data, user) {
     return updateDataset(id, data, user, datasetRepository);
   }
+
+  async restoreDataset(datasetId, user) {
+    return await datasetRepository.restoreDataset(datasetId, user);
+  }
 }
 
 module.exports = new datasetService();

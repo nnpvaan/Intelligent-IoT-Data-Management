@@ -232,6 +232,55 @@ class DatasetRepository {
       client.release();
     }
   }
+    async restoreDataset(datasetId, user) {
+    const result = await db.query(
+      `UPDATE datasets
+       SET deleted_at = NULL,
+           recovery_expires_at = NULL,
+           deleted_by = NULL,
+           updated_by = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+         AND deleted_at IS NOT NULL
+         AND recovery_expires_at > CURRENT_TIMESTAMP
+        AND (created_by = $2 OR $3 = 'admin')
+       RETURNING id, name, description,
+                 timestamp_field AS "timestampField",
+                 updated_by AS "updatedBy",
+                 updated_at AS "updatedAt"`,
+      [datasetId, user.sub, user.role],
+    );
+
+    if (result.rows.length === 0) {
+      const dataset = await db.query(
+        `SELECT id, deleted_at AS "deletedAt",
+                recovery_expires_at AS "recoveryExpiresAt"
+         FROM datasets
+         WHERE id = $1`,
+        [datasetId],
+      );
+
+      if (dataset.rows.length === 0) {
+        throw repositoryError("DATASET_NOT_FOUND", 404, "Dataset not found.");
+      }
+
+      if (dataset.rows[0].deletedAt === null) {
+        throw repositoryError(
+          "INVALID_RESTORE_REQUEST",
+          400,
+          "Dataset is already active.",
+        );
+      }
+
+      throw repositoryError(
+        "RECOVERY_EXPIRED",
+        410,
+        "Dataset recovery period has expired.",
+      );
+    }
+
+    return result.rows[0];
+  }
 }
 
 module.exports = new DatasetRepository();

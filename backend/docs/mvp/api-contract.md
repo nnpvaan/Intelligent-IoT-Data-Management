@@ -41,6 +41,7 @@ Use this document as the single source of truth for the MVP API release.
 | DATA-02 | `POST` | `/api/datasets` | Persist a reviewed CSV dataset, its mappings and mapped time-series rows | Bearer access token | FE upload wizard | Implemented |
 | DATA-03 | `PUT` | `/api/datasets/:id` | Replace mapping metadata and append reviewed CSV rows | Bearer access token | FE dataset editor | Implemented |
 | DATA-04 | `GET` | `/api/datasets/:id` | Retrieve one dataset's metadata and persisted row count | None | FE dataset detail | Implemented |
+| DATA-05 | `POST` | `/api/datasets/:id/restore` | Restore a soft-deleted dataset within the 15-day recovery period | Bearer access token | FE dataset management | Implemented |
 
 ## 4. Data and naming rules
 
@@ -145,6 +146,7 @@ Use this document as the single source of truth for the MVP API release.
 | Invalid input | `400` / `VALIDATION_ERROR` | Show field errors. |
 | Duplicate email | `409` / `ACCOUNT_EXISTS` | Offer sign-in or password reset. |
 | Service failure | `503` / `SERVICE_UNAVAILABLE` | Show retry state. |
+
 
 
 ### 6.2 AUTH-02 - POST /api/auth/login
@@ -690,6 +692,54 @@ The request uses the same timestamp, mapping, and row fields as `POST /api/datas
 | Database failure | `500` / `{ "error": "Failed to load dataset" }` |
 
 `timestampField` is the source CSV header used to write `timeseries.created_at`; it can be `null` for legacy datasets created before this field was saved. `mappings` is always an array. Each item contains the saved `sourceField`, `storageField`, `sourceDataType`, and `displayName`; items are ordered by `storageField`.
+
+### 6.13 DATA-05 - POST /api/datasets/:id/restore
+
+| Field | Value |
+| --- | --- |
+| Status | Implemented |
+| Purpose | Restore a soft-deleted dataset configuration within its 15-day recovery period. |
+| Consumers | FE dataset management |
+| Source of truth | PostgreSQL dataset configuration |
+| Authentication | `Authorization: Bearer <accessToken>` |
+| Recovery window | Dataset must have a non-null `deleted_at` and `recovery_expires_at` must be in the future. |
+| Authorization | Dataset owner or authenticated `admin` role. |
+| Content type | `application/json` |
+
+The restore operation only clears the dataset soft-delete state. Existing field mappings and dataset configuration remain unchanged. Historical time-series rows are not restored or modified.
+
+**Request**
+
+```http
+POST /api/datasets/42/restore
+Authorization: Bearer <accessToken>
+
+**Success response: `200 OK`**
+
+```json
+{
+  "data": {
+    "id": 42,
+    "name": "microclimate-sensors-april-2026",
+    "description": "Greenhouse sensor readings collected during April 2026.",
+    "timestampField": "Time",
+    "updatedBy": "4c7c77b9-2bb8-4a3e-9b7a-4a66782e9dd6",
+    "updatedAt": "2026-09-11T03:00:00.000Z"
+  },
+  "meta": {
+    "requestId": "req_03"
+  }
+}
+
+| Failure case                         | HTTP status / code                | Frontend behaviour                                           |
+| ------------------------------------ | --------------------------------- | ------------------------------------------------------------ |
+| Dataset ID is not a positive integer | `400` / validation error          | Reject the request without retrying.                         |
+| Dataset is already active            | `400` / `INVALID_RESTORE_REQUEST` | Inform the user that the dataset is already active.          |
+| Dataset does not exist               | `404` / `DATASET_NOT_FOUND`       | Inform the user that the dataset could not be found.         |
+| User is not authorised               | `403` / `FORBIDDEN`               | Show a permission message.                                   |
+| Recovery period has expired          | `410` / `RECOVERY_EXPIRED`        | Inform the user that the 15-day recovery period has expired. |
+| Database failure                     | `500` / `INTERNAL_ERROR`          | Preserve the current state and offer retry.                  |
+
 
 ## 7. Authentication and session flows
 
