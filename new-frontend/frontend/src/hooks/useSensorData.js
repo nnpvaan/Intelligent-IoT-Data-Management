@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSensorData } from '../services/sensorService';
+import { normaliseApiRecords } from '../utils/timestampUtils.js';
 
 export const useSensorData = (
   datasetId,
@@ -58,8 +59,11 @@ export const useSensorData = (
       (stream) => stream.id
     );
 
-    const hasTimestamp =
-      firstRow.created_at !== undefined;
+    const hasTimestamp = [
+      'created_at',
+      'timestamp',
+      'createdAt',
+    ].some((field) => firstRow[field] !== undefined);
 
     const hasStreamFields = streamIds.some(
       (id) => firstRow[id] !== undefined
@@ -69,7 +73,7 @@ export const useSensorData = (
       return {
         valid: false,
         reason:
-          'Missing required fields (created_at or stream data)',
+          'Missing required fields (timestamp or stream data)',
       };
     }
 
@@ -98,13 +102,10 @@ export const useSensorData = (
         setIsEmpty(false);
         setIsValid(true);
 
-        const response = await getSensorData(
-          datasetId,
-          {
-            useMock,
-            baseUrl,
-          }
-        );
+        const response = await getSensorData(datasetId, {
+          useMock,
+          baseUrl,
+        });
 
         if (!active) {
           return;
@@ -118,11 +119,9 @@ export const useSensorData = (
               validation.reason || 'Backend returned an error'
             )
           );
-
           setIsValid(false);
           setIsEmpty(false);
           setData(null);
-
           return;
         }
 
@@ -131,7 +130,6 @@ export const useSensorData = (
           setIsValid(false);
           setIsEmpty(false);
           setData(null);
-
           return;
         }
 
@@ -139,12 +137,19 @@ export const useSensorData = (
           setData(response);
           setIsEmpty(true);
           setIsValid(true);
-
           return;
         }
 
-        setData(response);
-        setIsEmpty(false);
+        const normalisedRows = normaliseApiRecords(
+          response.rows
+        );
+
+        setData({
+          ...response,
+          rows: normalisedRows,
+        });
+
+        setIsEmpty(normalisedRows.length === 0);
         setIsValid(true);
       } catch (err) {
         if (!active) {
