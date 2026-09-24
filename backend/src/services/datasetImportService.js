@@ -8,6 +8,10 @@ const ALLOWED_STORAGE_FIELDS = new Set([
   "field7",
   "field8",
 ]);
+<<<<<<< HEAD
+=======
+const { MAX_CSV_UPLOAD_ROWS } = require("../config/uploadLimits");
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba
 
 class DatasetImportError extends Error {
   constructor(message, fields) {
@@ -74,6 +78,11 @@ function validateImport(input, { requireName = true } = {}) {
   if (!timestampField) fields.timestampField = "Select one CSV timestamp column.";
   if (!rows || rows.length < 1)
     fields.rows = "Provide one or more CSV rows.";
+<<<<<<< HEAD
+=======
+  else if (rows.length > MAX_CSV_UPLOAD_ROWS)
+    fields.rows = `Provide no more than ${MAX_CSV_UPLOAD_ROWS.toLocaleString("en-AU")} CSV rows per upload.`;
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba
 
   if (Object.keys(fields).length) throw validationError(fields);
   return {
@@ -141,4 +150,8 @@ module.exports = {
   updateDataset,
   validateImport,
   mapRows,
+<<<<<<< HEAD
+=======
+  MAX_CSV_UPLOAD_ROWS,
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba
 };

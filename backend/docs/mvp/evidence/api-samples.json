@@ -1,0 +1,101 @@
+{
+  "note": "Captured live from a running local instance on 2026-08-31/09-01, backend + Postgres (IoTDatabase) + ThingSpeak polling all confirmed working. Dataset under test: thingspeak-live (channel 12397). This replaces the earlier code-derived/fabricated placeholder file. All 9 planned samples, including both 404 error cases, are now captured — no remaining placeholders.",
+  "samples": [
+    {
+      "route": "GET /api/datasets",
+      "status": 200,
+      "response": [
+        { "id": 1, "name": "thingspeak-live" }
+      ]
+    },
+    {
+      "route": "GET /api/datasets/thingspeak-live/series",
+      "status": 200,
+      "response": [
+        { "dataset_id": 1, "created_at": "2026-08-31T22:25:43.000Z", "entry_id": 5728731, "field1": 113, "field2": 1.6, "field3": 0, "field4": 0.1, "field5": 0, "field6": 29.86, "field7": 0, "field8": 0 },
+        { "dataset_id": 1, "created_at": "2026-08-31T22:26:43.000Z", "entry_id": 5728732, "field1": 113, "field2": 2, "field3": 0, "field4": 0.1, "field5": 0, "field6": 29.86, "field7": 0, "field8": 0 },
+        { "dataset_id": 1, "created_at": "2026-08-31T22:34:43.000Z", "entry_id": 5728740, "field1": 113, "field2": 1.6, "field3": 0, "field4": 0.1, "field5": 0, "field6": 29.86, "field7": 0, "field8": 0 }
+      ],
+      "note": "Truncated to 3 of 12 rows for brevity in this evidence file; full 12-row capture confirmed identical shape across all rows. IMPORTANT: response includes a dataset_id field on every row — this was not documented in api-contract.md's example shape and should be added."
+    },
+    {
+      "route": "GET /api/datasets/thingspeak-live/timestamps",
+      "status": 200,
+      "response": [
+        "2026-08-31T22:25:43.000Z",
+        "2026-08-31T22:26:43.000Z",
+        "2026-08-31T22:36:43.000Z"
+      ],
+      "note": "Truncated to 3 of 12 for brevity; full capture confirmed."
+    },
+    {
+      "route": "POST /api/datasets/thingspeak-live/series/filter",
+      "requestBody": { "streamNames": ["field1"] },
+      "status": 200,
+      "response": [
+        { "created_at": "2026-08-31T22:25:43.000Z", "entry_id": 5728731, "field1": 113 },
+        { "created_at": "2026-08-31T22:26:43.000Z", "entry_id": 5728732, "field1": 113 }
+      ],
+      "note": "Truncated for brevity; confirms filter correctly drops dataset_id and unrequested fields, keeps created_at/entry_id/requested field."
+    },
+    {
+      "route": "POST /api/register",
+      "requestBody": { "username": "pau", "password": "<redacted>", "role": "admin" },
+      "status": 201,
+      "response": {
+        "success": true,
+        "message": "User registered successfully",
+        "user": { "id": "1788216164449", "username": "pau", "role": "admin", "createdAt": "2026-08-31T22:42:44.449Z", "updatedAt": "2026-08-31T22:42:44.449Z" }
+      }
+    },
+    {
+      "route": "POST /api/login",
+      "requestBody": { "username": "pau", "password": "<redacted>" },
+      "status": 200,
+      "response": {
+        "success": true,
+        "message": "Login successful",
+        "accessToken": "<redacted — real token captured, 1hr expiry confirmed>",
+        "refreshToken": "<redacted — real token captured, 7 day expiry confirmed>",
+        "user": { "id": "1788216164449", "username": "pau", "role": "admin" }
+      },
+      "note": "Tokens redacted before committing to the repo — do not commit raw JWTs as evidence, even from a local/dev environment."
+    },
+    {
+      "route": "GET /api/feeds",
+      "auth": "Bearer <accessToken> — confirmed working after fixing missing JWT_SECRET in .env (see Open Items)",
+      "status": 200,
+      "response": {
+        "channel": {
+          "id": 12397,
+          "name": "WeatherStation",
+          "description": "MathWorks Weather Station, West Garage, Natick, MA 01760, USA",
+          "field1": "Wind Direction (North = 0 degrees)",
+          "field2": "Wind Speed (mph)",
+          "field3": "% Humidity",
+          "field4": "Temperature (F)",
+          "field5": "Rain (Inches/minute)",
+          "field6": "Pressure (\"Hg)",
+          "field7": "Power Level (V)",
+          "field8": "Light Intensity",
+          "last_entry_id": 5729554
+        },
+        "feeds": [
+          { "entryId": 5729545, "timestamp": "2026-09-01T12:28:43Z", "temperature": 0.1, "humidity": 0, "pressure": 1010.498776, "anomaly": false },
+          { "entryId": 5729554, "timestamp": "2026-09-01T12:37:43Z", "temperature": 0.1, "humidity": 0, "pressure": 1010.498776, "anomaly": false }
+        ]
+      },
+      "note": "MAJOR FINDING: the raw ThingSpeak channel object returns real field-name labels for all 8 fields (field1..field8), sourced directly from ThingSpeak, not from our own backend. This is a live, ready-made canonical-name mapping for this dataset — see Open Items in api-contract.md, item 3. Also reveals: field4 (Temperature) is in Fahrenheit at the source, and /api/feeds does not convert it — the 'temperature' field in the cleaned response is actually °F despite no unit being stated anywhere. field2 (Wind Speed), field5 (Rain), field7 (Power), field8 (Light) exist in the channel but are not exposed by /api/feeds's cleaned mapping at all — only field3/field4/field6 are surfaced today."
+    },
+    {
+      "route": "GET /api/datasets/doesnotexist/series",
+      "status": 404,
+      "response": { "error": "Dataset not found or empty" }
+    },
+    {
+      "route": "GET /api/datasets/999999",
+      "status": 404,
+      "response": { "error": "Dataset not found" }
+    }
+  ]
+}

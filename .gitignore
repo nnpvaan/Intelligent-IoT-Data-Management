@@ -44,4 +44,9 @@ data_science/outputs/*.png
 .env.local
 .env.development.local
 .env.test.local
+<<<<<<< HEAD
 .env.production.local
+=======
+.env.production.local
+venv/
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba

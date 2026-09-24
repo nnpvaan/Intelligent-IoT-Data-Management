@@ -7,8 +7,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import HomePage from "./pages/HomePage";
 import DashboardPage from "./pages/DashboardPage";
+import DeveloperMetricsPage from "./pages/DeveloperMetricsPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import ForgotPassword from "./pages/ForgotPassword";
+import AboutPage from "./pages/AboutPage";
 
 function App() {
   return (
@@ -28,7 +30,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/about"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AboutPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard/:id"
           element={
@@ -39,6 +50,17 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+  path="/developer-metrics/:id"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <DeveloperMetricsPage />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
       </Routes>
     </BrowserRouter>
   );

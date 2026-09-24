@@ -6,7 +6,17 @@ const {
   mapRows,
   updateDataset,
   validateImport,
+<<<<<<< HEAD
 } = require("../src/services/datasetImportService");
+=======
+  MAX_CSV_UPLOAD_ROWS,
+} = require("../src/services/datasetImportService");
+const {
+  MAX_REQUEST_BODY_BYTES,
+  maxUploadSizeLabel,
+  requestBodyLimitErrorHandler,
+} = require("../src/middleware/uploadLimitMiddleware");
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba
 
 const mappings = [
   { sourceField: "AirTemperature", storageField: "field1", displayName: "Temperature", sourceDataType: "number" },
@@ -148,3 +158,84 @@ test("PUT rejects dataset renames", async () => {
       error.fields.name === "Dataset name cannot be updated.",
   );
 });
+<<<<<<< HEAD
+=======
+
+test("an import rejects more than the configured CSV row limit before database work", async () => {
+  const rows = Array.from({ length: MAX_CSV_UPLOAD_ROWS + 1 }, () => ({
+    Time: "2026-04-29T01:25:15+10:00",
+    AirTemperature: "16.7",
+  }));
+  let repositoryCalled = false;
+
+  await assert.rejects(
+    () =>
+      importDataset({
+        name: "Too many rows",
+        timestampField: "Time",
+        mappings: mappings.slice(0, 1),
+        rows,
+      }, "user-id", {
+        async createWithMappingsAndRows() {
+          repositoryCalled = true;
+        },
+      }),
+    (error) =>
+      error instanceof DatasetImportError &&
+      error.fields.rows === `Provide no more than ${MAX_CSV_UPLOAD_ROWS.toLocaleString("en-AU")} CSV rows per upload.`,
+  );
+  assert.equal(repositoryCalled, false);
+});
+
+test("the configured CSV row limit itself remains valid", () => {
+  const rows = Array.from({ length: MAX_CSV_UPLOAD_ROWS }, () => ({
+    Time: "2026-04-29T01:25:15+10:00",
+    AirTemperature: "16.7",
+  }));
+
+  assert.equal(
+    validateImport({
+      name: "Maximum rows",
+      timestampField: "Time",
+      mappings: mappings.slice(0, 1),
+      rows,
+    }).rows.length,
+    MAX_CSV_UPLOAD_ROWS,
+  );
+});
+
+test("an oversized JSON body returns the documented generic limit response", () => {
+  let statusCode;
+  let responseBody;
+  let nextCalled = false;
+  const response = {
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  requestBodyLimitErrorHandler(
+    { type: "entity.too.large" },
+    {},
+    response,
+    () => {
+      nextCalled = true;
+    },
+  );
+
+  assert.equal(MAX_REQUEST_BODY_BYTES, 10 * 1024 * 1024);
+  assert.equal(statusCode, 413);
+  assert.deepEqual(responseBody, {
+    error: {
+      code: "REQUEST_BODY_TOO_LARGE",
+      message: `Request body must not exceed ${maxUploadSizeLabel}.`,
+    },
+  });
+  assert.equal(nextCalled, false);
+});
+>>>>>>> 5c5855ebf2c866c6f18f3809753f78e18e71beba
